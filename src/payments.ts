@@ -18,6 +18,7 @@ type PendingPayment = {
   expiresAt: number;
   fromAddress: string;
   amountUSDC: number;
+  receivedUSDC?: number;  // cumulative received in this window
   resolve: () => void;
 };
 
@@ -28,7 +29,7 @@ export function setPendingPayment(
   payment: Omit<PendingPayment, "resolve">,
   onConfirmed: () => void
 ): void {
-  pendingPayments.set(conversationId, { ...payment, resolve: onConfirmed });
+  pendingPayments.set(conversationId, { ...payment, receivedUSDC: 0, resolve: onConfirmed });
   setTimeout(() => {
     if (pendingPayments.has(conversationId)) {
       console.log(`[payments] pending expired for conv ${conversationId}`);
@@ -81,10 +82,12 @@ export async function verifyAndConfirmPayment(
       console.log(`[payments]   tx=${log.transactionHash} value=${formatUnits(val, 6)} USDC (need ${pending.amountUSDC})`);
     }
 
-    const match = logs.find((log) => {
-      const val = (log.args as { value?: bigint }).value ?? 0n;
-      return val >= expectedAmount;
-    });
+    // Sum all transfers to bot in the window — accept partial sends
+    const totalReceived = logs.reduce((sum, log) => {
+      return sum + ((log.args as { value?: bigint }).value ?? 0n);
+    }, 0n);
+    console.log(`[payments] total received in window: ${formatUnits(totalReceived, 6)} USDC (need ${pending.amountUSDC})`);
+    const match = totalReceived >= expectedAmount ? logs[logs.length - 1] : undefined;
 
     if (match) {
       const matchVal = (match.args as { value?: bigint }).value ?? 0n;
@@ -146,9 +149,11 @@ export async function watchIncomingPayments(): Promise<void> {
           timestamp: Date.now(),
           status: "confirmed",
         });
+        // Accumulate across multiple transfers so partial sends still count
         for (const [convId, pending] of pendingPayments) {
-          const expected = parseUnits(pending.amountUSDC.toString(), 6);
-          if ((args.value ?? 0n) >= expected) {
+          pending.receivedUSDC = (pending.receivedUSDC ?? 0) + amount;
+          console.log(`[payments] conv=${convId} received=${pending.receivedUSDC?.toFixed(6)}/${pending.amountUSDC} USDC`);
+          if ((pending.receivedUSDC ?? 0) >= pending.amountUSDC) {
             console.log(`[payments] auto-confirming conv=${convId} intent=${pending.intent}`);
             pending.resolve();
             pendingPayments.delete(convId);

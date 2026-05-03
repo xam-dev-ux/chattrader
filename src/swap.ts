@@ -53,6 +53,8 @@ export async function executeSwap(
     console.log(`[swap] approve tx: ${approveTx}`);
     const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveTx });
     if (approveReceipt.status !== "success") throw new Error("USDC approve transaction reverted");
+    // Wait for RPC state to propagate (load-balanced nodes can lag 1-2 blocks)
+    await new Promise((r) => setTimeout(r, 3000));
     console.log(`[swap] approve confirmed`);
   } else {
     console.log(`[swap] allowance sufficient, skipping approve`);
