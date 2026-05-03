@@ -9,131 +9,58 @@ export function buildPayPage(amountUSDC: number, description: string): string {
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0a0b0d;
-      color: #f1f5f9;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
+      background: #0a0b0d; color: #f1f5f9;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
     }
     .card {
-      background: #131720;
-      border: 1px solid #1e2736;
-      border-radius: 20px;
-      padding: 36px 32px;
-      max-width: 420px;
-      width: 100%;
+      background: #131720; border: 1px solid #1e2736; border-radius: 20px;
+      padding: 36px 32px; max-width: 420px; width: 100%;
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
-    .logo {
-      font-size: 22px;
-      font-weight: 800;
-      margin-bottom: 4px;
-      background: linear-gradient(90deg, #0052ff, #00c3ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .tagline {
-      color: #475569;
-      font-size: 13px;
-      margin-bottom: 28px;
-    }
-    .amount-card {
-      background: #0d1117;
-      border: 1px solid #1e2736;
-      border-radius: 14px;
-      padding: 24px;
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    .amount-value {
-      font-size: 44px;
-      font-weight: 800;
-      line-height: 1.1;
-    }
-    .amount-unit {
-      font-size: 16px;
-      color: #0052ff;
-      font-weight: 600;
-      margin-top: 6px;
-    }
-    .amount-desc {
-      font-size: 13px;
-      color: #64748b;
-      margin-top: 10px;
-    }
-    .btn {
-      width: 100%;
-      padding: 16px;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
+    .logo { font-size: 22px; font-weight: 800; margin-bottom: 4px;
+      background: linear-gradient(90deg,#0052ff,#00c3ff); -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent; background-clip: text; }
+    .tagline { color: #475569; font-size: 13px; margin-bottom: 28px; }
+    .amount-card { background: #0d1117; border: 1px solid #1e2736; border-radius: 14px;
+      padding: 24px; text-align: center; margin-bottom: 24px; }
+    .amount-value { font-size: 44px; font-weight: 800; line-height: 1.1; }
+    .amount-unit { font-size: 16px; color: #0052ff; font-weight: 600; margin-top: 6px; }
+    .amount-desc { font-size: 13px; color: #64748b; margin-top: 10px; }
+    .btn { width: 100%; padding: 16px; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
-    .btn-pay {
-      background: linear-gradient(135deg, #0052ff, #0070f3);
-      color: #fff;
-    }
-    .btn-pay:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(0,82,255,0.45);
-    }
-    .status {
-      margin-top: 16px;
-      padding: 14px 16px;
-      border-radius: 10px;
-      font-size: 14px;
-      line-height: 1.55;
-      display: none;
-      word-break: break-word;
-    }
+    .btn-pay { background: linear-gradient(135deg,#0052ff,#0070f3); color: #fff; }
+    .btn-pay:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,82,255,0.45); }
+    .status { margin-top: 16px; padding: 14px 16px; border-radius: 10px; font-size: 14px;
+      line-height: 1.55; display: none; word-break: break-word; }
     .status.loading { background: #0e1f3d; color: #93c5fd; display: block; }
     .status.success { background: #052e16; color: #4ade80; display: block; }
     .status.error   { background: #2d0f0f; color: #f87171; display: block; }
-    .tx-link {
-      display: block;
-      margin-top: 8px;
-      color: #4ade80;
-      text-decoration: underline;
-      font-size: 13px;
-      word-break: break-all;
-    }
-    .powered {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 12px;
-      color: #1e293b;
-    }
+    .tx-link { display: block; margin-top: 8px; color: #4ade80; text-decoration: underline;
+      font-size: 13px; word-break: break-all; }
+    .powered { text-align: center; margin-top: 20px; font-size: 12px; color: #1e293b; }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="logo">ChatTrader</div>
     <div class="tagline">Powered by x402 · Base Network</div>
-
     <div class="amount-card">
       <div class="amount-value">${amountUSDC}</div>
       <div class="amount-unit">USDC on Base</div>
       <div class="amount-desc">${description}</div>
     </div>
-
-    <button class="btn btn-pay" id="pay-btn" onclick="handlePay()">
-      Pay with Base Wallet
-    </button>
-
+    <button class="btn btn-pay" id="pay-btn">Pay with Base Wallet</button>
     <div class="status" id="status"></div>
     <div class="powered">x402 · EIP-3009 · Base Mainnet</div>
   </div>
 
-  <script>
+  <!-- Use viem from CDN for battle-tested typed-data signing -->
+  <script type="module">
+    import { createWalletClient, custom } from 'https://esm.sh/viem@2.21.0';
+    import { base } from 'https://esm.sh/viem@2.21.0/chains';
+
     const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-    const CHAIN_ID = 8453;
-    // Same URL — fetch() sends Accept: */* so server returns 402 JSON, not HTML
     const ENDPOINT = window.location.href;
 
     function setStatus(html, type) {
@@ -145,52 +72,58 @@ export function buildPayPage(amountUSDC: number, description: string): string {
     function randomBytes32() {
       const arr = new Uint8Array(32);
       crypto.getRandomValues(arr);
-      return '0x' + Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+      return ('0x' + Array.from(arr, b => b.toString(16).padStart(2, '0')).join(''));
     }
 
-    async function handlePay() {
+    document.getElementById('pay-btn').addEventListener('click', async () => {
       const btn = document.getElementById('pay-btn');
       btn.disabled = true;
 
       try {
         // 1. Connect wallet
         setStatus('Connecting wallet…', 'loading');
-        if (!window.ethereum) {
-          throw new Error('No wallet detected. Install <a href="https://www.coinbase.com/wallet" target="_blank" style="color:inherit">Coinbase Wallet</a> or MetaMask.');
-        }
-        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-        const userAddress = accounts[0];
+        if (!window.ethereum) throw new Error('No wallet detected. Install Coinbase Wallet or MetaMask.');
+
+        const walletClient = createWalletClient({ chain: base, transport: custom(window.ethereum) });
+        const [userAddress] = await walletClient.requestAddresses();
 
         // 2. Switch to Base
         setStatus('Switching to Base network…', 'loading');
         try {
-          await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }] });
+          await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }] });
         } catch (err) {
           if (err.code === 4902) {
-            await ethereum.request({
+            await window.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [{ chainId: '0x2105', chainName: 'Base', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: ['https://mainnet.base.org'], blockExplorerUrls: ['https://basescan.org'] }],
+              params: [{ chainId: '0x2105', chainName: 'Base', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                rpcUrls: ['https://mainnet.base.org'], blockExplorerUrls: ['https://basescan.org'] }],
             });
           } else throw err;
         }
 
-        // 3. Get payment requirements from 402 response
+        // 3. Fetch payment requirements from 402 response
         setStatus('Loading payment details…', 'loading');
         const resp402 = await fetch(ENDPOINT);
         const hdr402 = resp402.headers.get('x-payment-required');
-        if (!hdr402) throw new Error('Missing X-PAYMENT-REQUIRED header.');
+        if (!hdr402) throw new Error('Missing X-PAYMENT-REQUIRED header from server.');
         const payReq = JSON.parse(atob(hdr402));
-        const req = payReq.requirements[0];
-        const botAddress = req.payTo;
-        const amountMicro = req.amount;  // e.g. "120000"
+        const requirement = payReq.requirements[0];
+        const botAddress = requirement.payTo;
+        const amountMicro = requirement.amount;  // decimal string e.g. "120000"
 
-        // 4. Sign EIP-3009 TransferWithAuthorization
-        setStatus('Sign the payment in your wallet…', 'loading');
+        // 4. Sign EIP-3009 TransferWithAuthorization via viem (handles BigInt correctly)
+        setStatus('Approve the signature in your wallet…', 'loading');
         const eip3009Nonce = randomBytes32();
-        const validBefore = String(Math.floor(Date.now() / 1000) + 300);
+        const validBefore = BigInt(Math.floor(Date.now() / 1000) + 300);
 
-        const typedData = JSON.stringify({
-          domain: { name: 'USD Coin', version: '2', chainId: CHAIN_ID, verifyingContract: USDC_ADDRESS },
+        const signature = await walletClient.signTypedData({
+          account: userAddress,
+          domain: {
+            name: 'USD Coin',
+            version: '2',
+            chainId: 8453,
+            verifyingContract: USDC_ADDRESS,
+          },
           types: {
             TransferWithAuthorization: [
               { name: 'from',        type: 'address' },
@@ -202,15 +135,17 @@ export function buildPayPage(amountUSDC: number, description: string): string {
             ],
           },
           primaryType: 'TransferWithAuthorization',
-          message: { from: userAddress, to: botAddress, value: amountMicro, validAfter: '0', validBefore, nonce: eip3009Nonce },
+          message: {
+            from: userAddress,
+            to: botAddress,
+            value: BigInt(amountMicro),
+            validAfter: 0n,
+            validBefore,
+            nonce: eip3009Nonce,
+          },
         });
 
-        const signature = await ethereum.request({ method: 'eth_signTypedData_v4', params: [userAddress, typedData] });
-
-        // Validate before submitting — some mobile wallets return empty/malformed signatures
-        if (!signature || typeof signature !== 'string' || signature.replace(/^0x/i, '').length < 128) {
-          throw new Error('Wallet returned an invalid signature. Please try again.');
-        }
+        console.log('[x402] viem signature:', signature, 'len:', signature?.length);
 
         // 5. Submit with X-PAYMENT header
         setStatus('Settling payment on Base…', 'loading');
@@ -218,7 +153,14 @@ export function buildPayPage(amountUSDC: number, description: string): string {
           scheme: 'exact',
           network: 'eip155:8453',
           payload: {
-            authorization: { from: userAddress, to: botAddress, value: amountMicro, validAfter: '0', validBefore, nonce: eip3009Nonce },
+            authorization: {
+              from: userAddress,
+              to: botAddress,
+              value: amountMicro,
+              validAfter: '0',
+              validBefore: validBefore.toString(),
+              nonce: eip3009Nonce,
+            },
             signature,
           },
         }));
@@ -234,12 +176,12 @@ export function buildPayPage(amountUSDC: number, description: string): string {
           (txHash ? '<a class="tx-link" href="https://basescan.org/tx/' + txHash + '" target="_blank">View on Basescan →</a>' : ''),
           'success'
         );
-
       } catch (err) {
-        setStatus('Error: ' + (err.message || String(err)), 'error');
-        btn.disabled = false;
+        console.error('[x402] error:', err);
+        setStatus('Error: ' + (err.shortMessage || err.message || String(err)), 'error');
+        document.getElementById('pay-btn').disabled = false;
       }
-    }
+    });
   </script>
 </body>
 </html>`;

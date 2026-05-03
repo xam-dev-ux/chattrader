@@ -64,7 +64,7 @@ export async function settleX402Payment(xPaymentHeader: string): Promise<Settled
 
   // Manual signature split — more robust than viem's parseSignature across different mobile wallets
   const rawSig = (signature as string).replace(/^0x/i, "").toLowerCase();
-  console.log(`[x402] sig length=${rawSig.length} prefix=${rawSig.slice(0, 8)}`);
+  console.log(`[x402] signature (${rawSig.length} chars): ${rawSig}`);
   if (rawSig.length < 128) throw new Error(`Signature too short: ${rawSig.length} hex chars`);
 
   const r = `0x${rawSig.slice(0, 64)}` as `0x${string}`;
