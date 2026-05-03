@@ -111,16 +111,28 @@ export async function verifyAndConfirmPayment(
   return false;
 }
 
-export function watchIncomingPayments(): void {
+// mainnet.base.org does not support eth_newFilter/eth_getFilterChanges,
+// so we poll getLogs manually instead of using watchContractEvent.
+export async function watchIncomingPayments(): Promise<void> {
   const botAddress = process.env.BOT_ADDRESS as `0x${string}`;
-  console.log(`[payments] watching incoming USDC to ${botAddress}`);
+  let lastBlock = await publicClient.getBlockNumber();
+  console.log(`[payments] polling USDC transfers to ${botAddress} from block ${lastBlock}`);
 
-  publicClient.watchContractEvent({
-    address: USDC_ADDRESS,
-    abi: TRANSFER_EVENT_ABI,
-    eventName: "Transfer",
-    args: { to: botAddress },
-    onLogs: (logs) => {
+  setInterval(async () => {
+    try {
+      const currentBlock = await publicClient.getBlockNumber();
+      if (currentBlock <= lastBlock) return;
+
+      const logs = await publicClient.getLogs({
+        address: USDC_ADDRESS,
+        event: TRANSFER_EVENT_ABI[0],
+        args: { to: botAddress },
+        fromBlock: lastBlock + 1n,
+        toBlock: currentBlock,
+      });
+
+      lastBlock = currentBlock;
+
       for (const log of logs) {
         const args = log.args as { from?: string; value?: bigint };
         const amount = Number(formatUnits(args.value ?? 0n, 6));
@@ -134,7 +146,6 @@ export function watchIncomingPayments(): void {
           timestamp: Date.now(),
           status: "confirmed",
         });
-        // Auto-resolve any pending payment whose expected amount matches
         for (const [convId, pending] of pendingPayments) {
           const expected = parseUnits(pending.amountUSDC.toString(), 6);
           if ((args.value ?? 0n) >= expected) {
@@ -144,9 +155,8 @@ export function watchIncomingPayments(): void {
           }
         }
       }
-    },
-    onError: (err) => {
-      console.error("[payments] watchContractEvent error:", err);
-    },
-  });
+    } catch (err) {
+      console.error("[payments] poll error:", err);
+    }
+  }, 5000);
 }

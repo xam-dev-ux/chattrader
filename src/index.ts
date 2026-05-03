@@ -245,5 +245,5 @@ async function startXmtp(): Promise<void> {
   }
 }
 
-watchIncomingPayments();
+watchIncomingPayments().catch((e) => console.error("[payments] watcher fatal:", e));
 startXmtp().catch((e) => { console.error("[xmtp] fatal:", e); process.exit(1); });
