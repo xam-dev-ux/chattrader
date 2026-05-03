@@ -50,14 +50,18 @@ export async function verifyAndConfirmPayment(
   const expectedAmount = parseUnits(pending.amountUSDC.toString(), 6);
 
   try {
+    // Look back ~300 blocks (~10 min on Base) for the payment.
+    // We cannot filter by `from` because senderInboxId is an XMTP identity,
+    // not the user's wallet address.
+    const currentBlock = await publicClient.getBlockNumber();
+    const fromBlock = currentBlock > 300n ? currentBlock - 300n : 0n;
+
     const logs = await publicClient.getLogs({
       address: USDC_ADDRESS,
       event: TRANSFER_EVENT_ABI[0],
-      args: {
-        from: pending.fromAddress as `0x${string}`,
-        to: botAddress,
-      },
-      fromBlock: "latest",
+      args: { to: botAddress },
+      fromBlock,
+      toBlock: "latest",
     });
 
     const match = logs.find((log) => {
@@ -108,6 +112,15 @@ export function watchIncomingPayments(): void {
           timestamp: Date.now(),
           status: "confirmed",
         });
+        // Auto-resolve any pending payment whose expected amount matches
+        for (const [convId, pending] of pendingPayments) {
+          const expected = parseUnits(pending.amountUSDC.toString(), 6);
+          if ((args.value ?? 0n) >= expected) {
+            console.log(`[payments] auto-confirming pending payment for conv ${convId}`);
+            pending.resolve();
+            pendingPayments.delete(convId);
+          }
+        }
       }
     },
   });
