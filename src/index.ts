@@ -212,6 +212,7 @@ async function startXmtp(): Promise<void> {
         if (message.senderInboxId === client.inboxId) continue;
 
         const content = typeof message.content === "string" ? message.content : "";
+        if (!content.trim()) continue;
         const convId = message.conversationId;
 
         const send = async (text: string): Promise<void> => {
