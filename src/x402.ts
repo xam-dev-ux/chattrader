@@ -1,4 +1,4 @@
-import { parseSignature, type Abi } from "viem";
+import { type Abi } from "viem";
 import { walletClient, publicClient } from "./wallet.js";
 import { USDC_ADDRESS } from "./constants/contracts.js";
 import { logTransaction } from "./transactions.js";
@@ -62,10 +62,20 @@ export async function settleX402Payment(xPaymentHeader: string): Promise<Settled
   if (now < Number(authorization.validAfter))  throw new Error("Authorization not yet valid");
   if (now > Number(authorization.validBefore)) throw new Error("Authorization expired");
 
-  const { v, r, s } = parseSignature(signature as `0x${string}`);
+  // Manual signature split — more robust than viem's parseSignature across different mobile wallets
+  const rawSig = (signature as string).replace(/^0x/i, "").toLowerCase();
+  console.log(`[x402] sig length=${rawSig.length} prefix=${rawSig.slice(0, 8)}`);
+  if (rawSig.length < 128) throw new Error(`Signature too short: ${rawSig.length} hex chars`);
+
+  const r = `0x${rawSig.slice(0, 64)}` as `0x${string}`;
+  const s = `0x${rawSig.slice(64, 128)}` as `0x${string}`;
+  const vRaw = rawSig.length >= 130 ? parseInt(rawSig.slice(128, 130), 16) : 27;
+  // Normalise: some wallets return v=0/1, USDC ecrecover accepts 27/28
+  const v = vRaw < 27 ? vRaw + 27 : vRaw;
+
   const amountUSDC = Number(authorization.value) / 1e6;
 
-  console.log(`[x402] settling ${amountUSDC} USDC from ${authorization.from}`);
+  console.log(`[x402] settling ${amountUSDC} USDC from ${authorization.from} v=${v}`);
 
   const txHash = await walletClient.writeContract({
     address: USDC_ADDRESS,

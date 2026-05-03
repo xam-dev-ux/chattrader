@@ -207,6 +207,11 @@ export function buildPayPage(amountUSDC: number, description: string): string {
 
         const signature = await ethereum.request({ method: 'eth_signTypedData_v4', params: [userAddress, typedData] });
 
+        // Validate before submitting — some mobile wallets return empty/malformed signatures
+        if (!signature || typeof signature !== 'string' || signature.replace(/^0x/i, '').length < 128) {
+          throw new Error('Wallet returned an invalid signature. Please try again.');
+        }
+
         // 5. Submit with X-PAYMENT header
         setStatus('Settling payment on Base…', 'loading');
         const xPayment = btoa(JSON.stringify({
