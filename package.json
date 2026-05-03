@@ -11,6 +11,9 @@
     "@xmtp/node-sdk": "^1.0.6",
     "viem": "^2.21.0"
   },
+  "engines": {
+    "node": ">=20 <22"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsx": "^4.0.0",
