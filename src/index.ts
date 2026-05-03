@@ -1,5 +1,5 @@
 import http from "node:http";
-import { Client } from "@xmtp/node-sdk";
+import { Client, IdentifierKind } from "@xmtp/node-sdk";
 import { toBytes, keccak256, formatUnits } from "viem";
 import { account, publicClient } from "./wallet.js";
 import { parseIntent } from "./handler.js";
@@ -184,7 +184,7 @@ async function startXmtp(): Promise<void> {
     type: "EOA" as const,
     getIdentifier: () => ({
       identifier: account.address,
-      identifierKind: "Ethereum" as const,
+      identifierKind: IdentifierKind.Ethereum,
     }),
     signMessage: async (message: string): Promise<Uint8Array> => {
       const sig = await account.signMessage({ message });
