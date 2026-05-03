@@ -1,0 +1,19 @@
+{
+  "name": "chattrader",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --esm src/index.ts"
+  },
+  "dependencies": {
+    "@xmtp/node-sdk": "^0.0.41",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.0"
+  }
+}

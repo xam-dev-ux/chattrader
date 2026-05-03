@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: chattrader-agent
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: BOT_PRIVATE_KEY
+        sync: false
+      - key: BOT_ADDRESS
+        sync: false
+      - key: BUILDER_CODE
+        sync: false
+      - key: PRICE_PER_ANALYSIS
+        value: "0.01"
+      - key: MIN_SWAP_USDC
+        value: "5"
+      - key: PORT
+        value: "3000"
+      - key: BASE_RPC_URL
+        value: "https://mainnet.base.org"
+      - key: VERCEL_URL
+        sync: false
