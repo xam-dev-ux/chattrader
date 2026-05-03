@@ -1,5 +1,5 @@
 import http from "node:http";
-import { Client, type Signer } from "@xmtp/node-sdk";
+import { Client } from "@xmtp/node-sdk";
 import { toBytes, keccak256, formatUnits } from "viem";
 import { account, publicClient } from "./wallet.js";
 import { parseIntent } from "./handler.js";
@@ -179,8 +179,8 @@ async function handleMessage(opts: {
 // ── XMTP stream ──────────────────────────────────────────────────────────────
 
 async function startXmtp(): Promise<void> {
-  // Build XMTP signer from viem account
-  const signer: Signer = {
+  // Build XMTP signer from viem account (no explicit type — avoids excess-property error)
+  const signer = {
     getAddress: () => account.address,
     signMessage: async (message: string): Promise<Uint8Array> => {
       const sig = await account.signMessage({ message });
