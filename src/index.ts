@@ -217,7 +217,7 @@ async function startXmtp(): Promise<void> {
         const send = async (text: string): Promise<void> => {
           try {
             const conv = await client.conversations.getConversationById(convId);
-            if (conv) await conv.sendText(text);
+            if (conv) await conv.send(text);
           } catch (e) {
             console.error("[xmtp] send error:", e);
           }
