@@ -179,9 +179,13 @@ async function handleMessage(opts: {
 // ── XMTP stream ──────────────────────────────────────────────────────────────
 
 async function startXmtp(): Promise<void> {
-  // Build XMTP signer from viem account (no explicit type — avoids excess-property error)
+  // EOA signer shape required by @xmtp/node-sdk v1
   const signer = {
-    getAddress: () => account.address,
+    type: "EOA" as const,
+    getIdentifier: () => ({
+      identifier: account.address,
+      identifierKind: "Ethereum" as const,
+    }),
     signMessage: async (message: string): Promise<Uint8Array> => {
       const sig = await account.signMessage({ message });
       return toBytes(sig);
