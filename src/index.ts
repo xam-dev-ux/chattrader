@@ -8,6 +8,7 @@ import { getPrice } from "./prices.js";
 import { executeSwap } from "./swap.js";
 import { getTransactions } from "./transactions.js";
 import { build402Header, settleX402Payment } from "./x402.js";
+import { buildPayPage } from "./payPage.js";
 import { BUILDER_CODE_RAW } from "./constants/builderCode.js";
 import { USDC_ADDRESS } from "./constants/contracts.js";
 
@@ -91,6 +92,14 @@ const server = http.createServer(async (req, res) => {
     const nonce = url.searchParams.get("nonce") ?? "";
     const xPayment = req.headers["x-payment"] as string | undefined;
 
+    // Browser navigation → serve payment UI
+    if (!xPayment && req.headers.accept?.includes("text/html")) {
+      cors(res);
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(buildPayPage(PRICE_PER_ANALYSIS, `Analysis of ${token.toUpperCase()}`));
+      return;
+    }
+
     if (!xPayment) {
       const header402 = build402Header(PRICE_PER_ANALYSIS, BOT_ADDRESS, `Analysis of ${token.toUpperCase()}`);
       cors(res);
@@ -134,6 +143,14 @@ const server = http.createServer(async (req, res) => {
     const nonce = url.searchParams.get("nonce") ?? "";
     const xPayment = req.headers["x-payment"] as string | undefined;
     const totalCost = Math.round((amount + SWAP_FEE_USDC) * 1e6) / 1e6;
+
+    // Browser navigation → serve payment UI
+    if (!xPayment && req.headers.accept?.includes("text/html")) {
+      cors(res);
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(buildPayPage(totalCost, `Swap ${amount} USDC → ETH`));
+      return;
+    }
 
     if (!xPayment) {
       const header402 = build402Header(totalCost, BOT_ADDRESS, `Swap ${amount} USDC → ETH`);
