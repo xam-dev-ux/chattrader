@@ -21,3 +21,5 @@ services:
         value: "https://mainnet.base.org"
       - key: VERCEL_URL
         sync: false
+      - key: BOT_URL
+        sync: false
