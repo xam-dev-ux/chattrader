@@ -87,6 +87,7 @@ async function handleMessage(opts: {
   const text = content.trim();
   const convId = conversationId;
   const intent = parseIntent(text);
+  console.log(`[handler] from=${senderInboxId.slice(0, 8)} intent=${intent.type} text="${text.slice(0, 60)}"`);
 
   if (intent.type === "confirm" && hasPendingPayment(convId)) {
     await send("Verifying payment onchain...");
@@ -153,7 +154,7 @@ async function handleMessage(opts: {
         await send(`Minimum swap is ${MIN_SWAP_USDC} USDC.`);
         break;
       }
-      const totalCost = intent.amount + SWAP_FEE_USDC;
+      const totalCost = Math.round((intent.amount + SWAP_FEE_USDC) * 1e6) / 1e6;
       await send(`Swap ${intent.amount} USDC → ETH (fee: $${SWAP_FEE_USDC})\nTotal: ${totalCost} USDC to ${BOT_ADDRESS}\nReply: confirm`);
       setPendingPayment(
         convId,
