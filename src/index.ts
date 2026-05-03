@@ -39,6 +39,10 @@ type PendingX402Entry =
 
 const pendingX402 = new Map<string, PendingX402Entry>();
 
+// ── Payment status map (for browser polling) ──────────────────────────────────
+type PaymentStatus = { status: "processing" | "done" | "failed"; swapTx?: string; error?: string };
+const paymentStatus = new Map<string, PaymentStatus>();
+
 // ── HTTP helpers ──────────────────────────────────────────────────────────────
 
 function cors(res: http.ServerResponse): void {
@@ -212,6 +216,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Respond immediately; process async in background
+    paymentStatus.set(nonce, { status: "processing" });
     json(res, { status: "processing", txHash });
 
     (async () => {
@@ -223,6 +228,7 @@ const server = http.createServer(async (req, res) => {
         });
 
         if (receipt.status !== "success") {
+          paymentStatus.set(nonce, { status: "failed", error: "Payment transaction reverted on-chain." });
           pendingX402.get(nonce)?.send("Payment transaction failed on-chain.").catch(() => {});
           pendingX402.delete(nonce);
           return;
@@ -230,28 +236,48 @@ const server = http.createServer(async (req, res) => {
 
         console.log(`[confirm] tx confirmed, executing action nonce=${nonce}`);
         const pending = pendingX402.get(nonce);
-        if (!pending) { console.warn(`[confirm] no pending action for nonce=${nonce}`); return; }
+        if (!pending) {
+          console.warn(`[confirm] no pending action for nonce=${nonce}`);
+          paymentStatus.set(nonce, { status: "failed", error: "Session expired — contact support." });
+          return;
+        }
 
         if (pending.type === "swap") {
           try {
             const swapTx = await executeSwap(pending.amount, userAddress as `0x${string}`);
-            await pending.send(`Swap executed!\nTx: ${swapTx}\nView: https://basescan.org/tx/${swapTx}`);
+            const msg = `Swap executed!\nTx: ${swapTx}\nView: https://basescan.org/tx/${swapTx}`;
+            paymentStatus.set(nonce, { status: "done", swapTx });
+            await pending.send(msg).catch((e) => console.error("[xmtp] send error:", e));
           } catch (err) {
-            await pending.send(`Swap failed: ${(err as Error).message}`);
+            const errMsg = (err as Error).message;
+            paymentStatus.set(nonce, { status: "failed", error: errMsg });
+            await pending.send(`Swap failed: ${errMsg}`).catch(() => {});
           }
         } else if (pending.type === "analysis") {
-          await pending.send(await runAnalysis(pending.token));
+          const result = await runAnalysis(pending.token);
+          paymentStatus.set(nonce, { status: "done" });
+          await pending.send(result).catch((e) => console.error("[xmtp] send error:", e));
         }
 
         pendingX402.delete(nonce);
       } catch (err) {
+        const errMsg = (err as Error).message;
         console.error(`[confirm] error nonce=${nonce}:`, err);
-        pendingX402.get(nonce)?.send(`Error processing payment: ${(err as Error).message}`).catch(() => {});
+        paymentStatus.set(nonce, { status: "failed", error: errMsg });
+        pendingX402.get(nonce)?.send(`Error: ${errMsg}`).catch(() => {});
         pendingX402.delete(nonce);
       }
     })();
 
     return;
+  }
+
+  // ── GET /api/payment-status/:nonce — browser polls for swap result ────────────
+
+  const statusMatch = pathname.match(/^\/api\/payment-status\/([^/]+)$/);
+  if (statusMatch) {
+    const nonce = statusMatch[1];
+    return json(res, paymentStatus.get(nonce) ?? { status: "unknown" });
   }
 
   json(res, { error: "not found" }, 404);
@@ -385,8 +411,13 @@ async function startXmtp(): Promise<void> {
         const convId = message.conversationId;
         const send = async (text: string): Promise<void> => {
           try {
+            await client.conversations.sync();
             const conv = await client.conversations.getConversationById(convId);
-            if (conv) await conv.send(text);
+            if (conv) {
+              await conv.send(text);
+            } else {
+              console.error(`[xmtp] send: conv ${convId} not found after sync`);
+            }
           } catch (e) {
             console.error("[xmtp] send error:", e);
           }
