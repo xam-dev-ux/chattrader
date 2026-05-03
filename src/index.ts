@@ -56,6 +56,26 @@ function json(res: http.ServerResponse, data: unknown, status = 200, extra?: Rec
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 
+// ── Read request body ─────────────────────────────────────────────────────────
+
+function readBody(req: http.IncomingMessage): Promise<string> {
+  return new Promise((resolve) => {
+    let data = "";
+    req.on("data", (chunk: Buffer) => { data += chunk.toString(); });
+    req.on("end", () => resolve(data));
+  });
+}
+
+// ── Analysis helper (shared between x402 and confirm-payment) ─────────────────
+
+async function runAnalysis(token: string): Promise<string> {
+  const data = await getPrice(token);
+  if (!data) return `Could not fetch data for ${token.toUpperCase()}.`;
+  const change = data.usd_24h_change;
+  const sentiment = change > 2 ? "bullish" : change < -2 ? "bearish" : "neutral";
+  return `${token.toUpperCase()} ANALYSIS\nPrice: $${data.usd.toLocaleString()}\n24h: ${change.toFixed(2)}%\nSentiment: ${sentiment.toUpperCase()}\n${change > 0 ? "Momentum positive — watch resistance levels." : "Selling pressure — monitor support zones."}`;
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") { cors(res); res.writeHead(204); res.end(); return; }
 
@@ -96,7 +116,7 @@ const server = http.createServer(async (req, res) => {
     if (!xPayment && req.headers.accept?.includes("text/html")) {
       cors(res);
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      res.end(buildPayPage(PRICE_PER_ANALYSIS, `Analysis of ${token.toUpperCase()}`));
+      res.end(buildPayPage(PRICE_PER_ANALYSIS, `Analysis of ${token.toUpperCase()}`, BOT_ADDRESS));
       return;
     }
 
@@ -112,15 +132,7 @@ const server = http.createServer(async (req, res) => {
       const settled = await settleX402Payment(xPayment);
       console.log(`[x402] analysis settled from=${settled.userAddress} tx=${settled.txHash}`);
 
-      const data = await getPrice(token);
-      let result: string;
-      if (!data) {
-        result = `Could not fetch data for ${token.toUpperCase()}.`;
-      } else {
-        const change = data.usd_24h_change;
-        const sentiment = change > 2 ? "bullish" : change < -2 ? "bearish" : "neutral";
-        result = `${token.toUpperCase()} ANALYSIS\nPrice: $${data.usd.toLocaleString()}\n24h: ${change.toFixed(2)}%\nSentiment: ${sentiment.toUpperCase()}\n${change > 0 ? "Momentum positive — watch resistance levels." : "Selling pressure — monitor support zones."}`;
-      }
+      const result = await runAnalysis(token);
 
       const pending = pendingX402.get(nonce);
       if (pending?.type === "analysis") {
@@ -148,7 +160,7 @@ const server = http.createServer(async (req, res) => {
     if (!xPayment && req.headers.accept?.includes("text/html")) {
       cors(res);
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      res.end(buildPayPage(totalCost, `Swap ${amount} USDC → ETH`));
+      res.end(buildPayPage(totalCost, `Swap ${amount} USDC → ETH`, BOT_ADDRESS));
       return;
     }
 
@@ -183,6 +195,63 @@ const server = http.createServer(async (req, res) => {
       }
       return json(res, { error: (err as Error).message }, 400);
     }
+  }
+
+  // ── POST /api/confirm-payment — browser pays via direct ERC-20 transfer ──────
+
+  if (pathname === "/api/confirm-payment" && req.method === "POST") {
+    let body: { txHash: string; nonce: string; userAddress: string };
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      return json(res, { error: "Invalid JSON body" }, 400);
+    }
+    const { txHash, nonce, userAddress } = body;
+    if (!txHash || !nonce || !userAddress) {
+      return json(res, { error: "Missing txHash, nonce or userAddress" }, 400);
+    }
+
+    // Respond immediately; process async in background
+    json(res, { status: "processing", txHash });
+
+    (async () => {
+      console.log(`[confirm] waiting for tx=${txHash} nonce=${nonce}`);
+      try {
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash: txHash as `0x${string}`,
+          timeout: 120_000,
+        });
+
+        if (receipt.status !== "success") {
+          pendingX402.get(nonce)?.send("Payment transaction failed on-chain.").catch(() => {});
+          pendingX402.delete(nonce);
+          return;
+        }
+
+        console.log(`[confirm] tx confirmed, executing action nonce=${nonce}`);
+        const pending = pendingX402.get(nonce);
+        if (!pending) { console.warn(`[confirm] no pending action for nonce=${nonce}`); return; }
+
+        if (pending.type === "swap") {
+          try {
+            const swapTx = await executeSwap(pending.amount, userAddress as `0x${string}`);
+            await pending.send(`Swap executed!\nTx: ${swapTx}\nView: https://basescan.org/tx/${swapTx}`);
+          } catch (err) {
+            await pending.send(`Swap failed: ${(err as Error).message}`);
+          }
+        } else if (pending.type === "analysis") {
+          await pending.send(await runAnalysis(pending.token));
+        }
+
+        pendingX402.delete(nonce);
+      } catch (err) {
+        console.error(`[confirm] error nonce=${nonce}:`, err);
+        pendingX402.get(nonce)?.send(`Error processing payment: ${(err as Error).message}`).catch(() => {});
+        pendingX402.delete(nonce);
+      }
+    })();
+
+    return;
   }
 
   json(res, { error: "not found" }, 404);
