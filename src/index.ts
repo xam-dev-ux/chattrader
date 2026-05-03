@@ -201,6 +201,14 @@ async function startXmtp(): Promise<void> {
     dbEncryptionKey: encryptionKey,
     env: "production",
   });
+  // Revoke stale installations so we never hit the 10-installation limit
+  // (Render redeploys on ephemeral filesystem, creating a new installation each time)
+  try {
+    await client.revokeAllOtherInstallations();
+    console.log("[xmtp] revoked stale installations");
+  } catch (e) {
+    console.warn("[xmtp] could not revoke installations:", e);
+  }
   await client.conversations.sync();
   console.log(`[xmtp] listening — inboxId: ${client.inboxId}`);
 
