@@ -1,68 +1,73 @@
-const COINCAP_ID: Record<string, string> = {
-  eth: "ethereum",
-  btc: "bitcoin",
-  sol: "solana",
-  doge: "dogecoin",
-};
-
-const BINANCE_SYMBOL: Record<string, string> = {
-  eth: "ETHUSDT",
-  btc: "BTCUSDT",
-  sol: "SOLUSDT",
-  doge: "DOGEUSDT",
-};
-
-// kept for the CoinGecko fallback
-const COINGECKO_ID = COINCAP_ID;
-
 export type PriceData = {
   usd: number;
   usd_24h_change: number;
 };
 
+const CC_SYMBOL: Record<string, string> = {
+  eth: "ETH",
+  btc: "BTC",
+  sol: "SOL",
+  doge: "DOGE",
+};
+
+const KRAKEN_PAIR: Record<string, string> = {
+  eth: "ETHUSD",
+  btc: "XBTUSD",
+  sol: "SOLUSD",
+  doge: "XDGUSD",
+};
+
 export async function getPrice(token: string): Promise<PriceData | null> {
   const key = token.toLowerCase();
-  const capId = COINCAP_ID[key];
-  const binanceSymbol = BINANCE_SYMBOL[key];
-  if (!capId) return null;
+  if (!CC_SYMBOL[key]) return null;
 
-  // 1. CoinCap — no key, no rate limits
+  // 1. CryptoCompare — free, no key, works from cloud
   try {
-    const res = await fetch(`https://api.coincap.io/v2/assets/${capId}`);
+    const sym = CC_SYMBOL[key];
+    const res = await fetch(
+      `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${sym}&tsyms=USD`
+    );
     if (res.ok) {
-      const j = await res.json() as { data?: { priceUsd: string; changePercent24Hr: string } };
-      const d = j.data;
-      if (d?.priceUsd) {
-        console.log(`[price] CoinCap ok: ${key} $${parseFloat(d.priceUsd).toFixed(2)}`);
-        return { usd: parseFloat(d.priceUsd), usd_24h_change: parseFloat(d.changePercent24Hr ?? "0") };
+      const j = await res.json() as { RAW?: Record<string, { USD?: { PRICE: number; CHANGEPCT24HOUR: number } }> };
+      const d = j.RAW?.[sym]?.USD;
+      if (d?.PRICE) {
+        console.log(`[price] CryptoCompare ok: ${key} $${d.PRICE.toFixed(2)}`);
+        return { usd: d.PRICE, usd_24h_change: d.CHANGEPCT24HOUR ?? 0 };
       }
     }
-    console.warn(`[price] CoinCap ${capId} status=${res.status}`);
-  } catch (e) { console.warn(`[price] CoinCap error:`, (e as Error).message); }
+    console.warn(`[price] CryptoCompare ${sym} status=${res.status}`);
+  } catch (e) { console.warn(`[price] CryptoCompare error:`, (e as Error).message); }
 
-  // 2. Binance public ticker (no key needed)
-  if (binanceSymbol) {
-    try {
-      const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`);
-      if (res.ok) {
-        const d = await res.json() as { lastPrice: string; priceChangePercent: string };
-        if (d?.lastPrice) {
-          console.log(`[price] Binance ok: ${key} $${parseFloat(d.lastPrice).toFixed(2)}`);
-          return { usd: parseFloat(d.lastPrice), usd_24h_change: parseFloat(d.priceChangePercent ?? "0") };
+  // 2. Kraken — very reliable, global, no key
+  try {
+    const pair = KRAKEN_PAIR[key];
+    const res = await fetch(`https://api.kraken.com/0/public/Ticker?pair=${pair}`);
+    if (res.ok) {
+      const j = await res.json() as { result?: Record<string, { c: string[]; P: string[] }> };
+      const result = j.result;
+      if (result) {
+        const ticker = Object.values(result)[0];
+        if (ticker?.c?.[0]) {
+          const price = parseFloat(ticker.c[0]);
+          const change = parseFloat(ticker.P?.[1] ?? "0"); // 24h % change
+          console.log(`[price] Kraken ok: ${key} $${price.toFixed(2)}`);
+          return { usd: price, usd_24h_change: change };
         }
       }
-      console.warn(`[price] Binance ${binanceSymbol} status=${res.status}`);
-    } catch (e) { console.warn(`[price] Binance error:`, (e as Error).message); }
-  }
+    }
+    console.warn(`[price] Kraken ${pair} status=${res.status}`);
+  } catch (e) { console.warn(`[price] Kraken error:`, (e as Error).message); }
 
-  // 3. CoinGecko free tier (may be blocked on cloud IPs)
+  // 3. CoinGecko — last resort (rate-limits cloud IPs)
+  const GECKO_ID: Record<string, string> = { eth: "ethereum", btc: "bitcoin", sol: "solana", doge: "dogecoin" };
   try {
+    const id = GECKO_ID[key];
     const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${COINGECKO_ID[key]}&vs_currencies=usd&include_24hr_change=true`
+      `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd&include_24hr_change=true`
     );
     if (res.ok) {
       const j = await res.json() as Record<string, { usd?: number; usd_24h_change?: number }>;
-      const d = j[COINGECKO_ID[key]];
+      const d = j[id];
       if (d?.usd) {
         console.log(`[price] CoinGecko ok: ${key} $${d.usd}`);
         return { usd: d.usd, usd_24h_change: d.usd_24h_change ?? 0 };
