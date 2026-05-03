@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@xmtp/node-sdk": "4.5.1",
+    "ox": "^0.14.20",
     "viem": "^2.21.0"
   },
   "engines": {

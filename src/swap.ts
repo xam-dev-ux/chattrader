@@ -1,7 +1,7 @@
-import { encodeFunctionData, concat, parseUnits, maxUint256, type Abi } from "viem";
+import { encodeFunctionData, parseUnits, maxUint256, type Abi } from "viem";
 import { walletClient, publicClient } from "./wallet.js";
 import { UNISWAP_ROUTER, USDC_ADDRESS, WETH_ADDRESS, UNISWAP_POOL_FEE } from "./constants/contracts.js";
-import { BUILDER_CODE, BUILDER_CODE_RAW } from "./constants/builderCode.js";
+import { BUILDER_CODE_RAW } from "./constants/builderCode.js";
 import { logTransaction } from "./transactions.js";
 
 const ERC20_ABI: Abi = [
@@ -87,13 +87,11 @@ export async function executeSwap(
     args: [swapParams],
   });
 
-  // ERC-8021: append Builder Code to calldata for Base attribution
-  const calldataWithSuffix = BUILDER_CODE ? concat([calldata, BUILDER_CODE]) : calldata;
-
+  // dataSuffix (ERC-8021) is added automatically by walletClient (configured in wallet.ts)
   console.log(`[swap] builder:${BUILDER_CODE_RAW} sending swap`);
   const txHash = await walletClient.sendTransaction({
     to: UNISWAP_ROUTER,
-    data: calldataWithSuffix,
+    data: calldata,
   });
 
   console.log(`[swap] tx sent: ${txHash}`);
