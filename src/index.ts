@@ -197,7 +197,10 @@ async function startXmtp(): Promise<void> {
     keccak256(toBytes(process.env.BOT_PRIVATE_KEY as `0x${string}`))
   );
 
-  const client = await Client.create(signer, encryptionKey, { env: "production" });
+  const client = await Client.create(signer, {
+    dbEncryptionKey: encryptionKey,
+    env: "production",
+  });
   await client.conversations.sync();
   console.log(`[xmtp] listening — inboxId: ${client.inboxId}`);
 
@@ -214,7 +217,7 @@ async function startXmtp(): Promise<void> {
         const send = async (text: string): Promise<void> => {
           try {
             const conv = await client.conversations.getConversationById(convId);
-            if (conv) await conv.send(text);
+            if (conv) await conv.sendText(text);
           } catch (e) {
             console.error("[xmtp] send error:", e);
           }
