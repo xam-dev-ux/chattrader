@@ -10,7 +10,7 @@ services:
       - key: BOT_ADDRESS
         sync: false
       - key: BUILDER_CODE
-        sync: false
+        value: "bc_jnu0cmfe"
       - key: PRICE_PER_ANALYSIS
         value: "0.01"
       - key: MIN_SWAP_USDC

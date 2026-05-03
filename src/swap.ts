@@ -1,7 +1,7 @@
 import { encodeFunctionData, concat, parseUnits, type Abi } from "viem";
 import { walletClient } from "./wallet.js";
 import { UNISWAP_ROUTER, USDC_ADDRESS, WETH_ADDRESS, UNISWAP_POOL_FEE } from "./constants/contracts.js";
-import { BUILDER_CODE } from "./constants/builderCode.js";
+import { BUILDER_CODE, BUILDER_CODE_RAW } from "./constants/builderCode.js";
 import { logTransaction } from "./transactions.js";
 
 const EXACT_INPUT_SINGLE_ABI: Abi = [
@@ -64,10 +64,10 @@ export async function executeSwap(
     tokenIn: "USDC",
     tokenOut: "ETH",
     timestamp: Date.now(),
-    builderCode: BUILDER_CODE,
+    builderCode: BUILDER_CODE_RAW,
     status: "confirmed",
   });
 
-  console.log(`[swap] builder:${BUILDER_CODE} tx:${txHash}`);
+  console.log(`[swap] builder:${BUILDER_CODE_RAW} tx:${txHash}`);
   return txHash;
 }

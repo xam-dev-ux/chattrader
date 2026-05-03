@@ -12,7 +12,7 @@ import {
   verifyAndConfirmPayment,
   watchIncomingPayments,
 } from "./payments.js";
-import { BUILDER_CODE } from "./constants/builderCode.js";
+import { BUILDER_CODE, BUILDER_CODE_RAW } from "./constants/builderCode.js";
 import { USDC_ADDRESS } from "./constants/contracts.js";
 
 const START_TIME = Date.now();
@@ -55,7 +55,7 @@ const server = http.createServer((req, res) => {
     return json(res, { status: "ok", address: BOT_ADDRESS, uptime: Math.floor((Date.now() - START_TIME) / 1000) });
   }
   if (url === "/api/transactions") {
-    return json(res, { transactions: getTransactions(), botAddress: BOT_ADDRESS, builderCode: BUILDER_CODE });
+    return json(res, { transactions: getTransactions(), botAddress: BOT_ADDRESS, builderCode: BUILDER_CODE_RAW });
   }
   if (url === "/api/stats") {
     const txs = getTransactions();
@@ -67,7 +67,7 @@ const server = http.createServer((req, res) => {
       totalPaymentsReceived: payments.length,
       uptime: Math.floor((Date.now() - START_TIME) / 1000),
       botAddress: BOT_ADDRESS,
-      builderCode: BUILDER_CODE,
+      builderCode: BUILDER_CODE_RAW,
     });
   }
   json(res, { error: "not found" }, 404);
