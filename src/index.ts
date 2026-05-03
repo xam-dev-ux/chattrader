@@ -210,9 +210,11 @@ async function startXmtp(): Promise<void> {
       for await (const message of stream) {
         if (!message) continue;
         if (message.senderInboxId === client.inboxId) continue;
+        // Only process plain-text messages; skip GroupUpdated and all other system frames
+        if (message.contentType?.typeId !== "text") continue;
 
-        const content = typeof message.content === "string" ? message.content : "";
-        if (!content.trim()) continue;
+        const content = typeof message.content === "string" ? message.content.trim() : "";
+        if (!content) continue;
         const convId = message.conversationId;
 
         const send = async (text: string): Promise<void> => {
