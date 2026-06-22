@@ -387,13 +387,6 @@ async function startXmtp(): Promise<void> {
     env: "production",
   });
 
-  try {
-    await client.revokeAllOtherInstallations();
-    console.log("[xmtp] revoked stale installations");
-  } catch (e) {
-    console.warn("[xmtp] could not revoke installations:", e);
-  }
-
   await client.conversations.sync();
   console.log(`[xmtp] listening — inboxId: ${client.inboxId}`);
 
@@ -433,4 +426,9 @@ async function startXmtp(): Promise<void> {
   }
 }
 
-startXmtp().catch((e) => { console.error("[xmtp] fatal:", e); process.exit(1); });
+// Keep-alive to prevent Render free tier sleep
+if (BOT_URL) {
+  setInterval(() => fetch(BOT_URL + "/health").catch(() => {}), 10 * 60 * 1000);
+}
+
+startXmtp().catch(console.error);
